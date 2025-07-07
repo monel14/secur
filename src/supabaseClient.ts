@@ -2,12 +2,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './types/database.types';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('VOTRE_URL_SUPABASE') || supabaseAnonKey.includes('VOTRE_CLE_ANON_SUPABASE')) {
+if (!supabaseUrl || !supabaseAnonKey) {
     const errorMsg = "Erreur: Clés Supabase non configurées.\n\n" +
-                     "Veuillez ouvrir le fichier `index.html` et remplacer les valeurs de `SUPABASE_URL` et `SUPABASE_ANON_KEY` par celles de votre projet Supabase.\n\n" +
+                     "Veuillez configurer les variables d'environnement VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY dans le fichier .env.local\n\n" +
                      "Vous trouverez ces clés dans les paramètres de votre projet sur supabase.com > Project Settings > API.";
     
     // Display a more user-friendly message on the page itself
