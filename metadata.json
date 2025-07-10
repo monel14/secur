@@ -1,6 +1,7 @@
+
 {
   "name": "SecureTrans Platform",
   "description": "A React-based money transfer platform with multiple user roles and functionalities.",
   "requestFramePermissions": [],
-  "prompt": ""
+  "prompt": "Refactor the entire application to match the new 'SecureTrans' design system provided. This includes:\n1.  **Colors & Gradients**: Implement the new primary, role-based, and functional color palettes. Use gradients for buttons and page headers.\n2.  **Typography**: Enforce the specified font hierarchy.\n3.  **Components**:\n    *   **Cards**: Update to use `shadow-lg`, `rounded-xl`, and `hover:shadow-xl`.\n    *   **Buttons**: Replace all existing button styles with the new gradient-based primary buttons and updated secondary buttons. Use Tailwind classes directly.\n    *   **Badges**: Implement the new color-coded badge styles for all statuses.\n4.  **Layout**:\n    *   Introduce a new, reusable `PageHeader` component for all main pages, featuring role-specific gradients and decorative background elements.\n    *   Restructure content within cards for better clarity and visual appeal (e.g., `AgentCardComponent`, `AgencyCard`).\n5.  **Icons**: Update all FontAwesome icons to align with the new iconographic language provided in the design system.\n6.  **AI Features Removed**: All AI-powered insight cards and Gemini API calls have been removed from the application.\n7.  **Overall Feel**: The application should feel modern, secure, and visually cohesive, with improved spacing, transitions, and a premium aesthetic."
 }

@@ -1,16 +1,52 @@
-
-import React, { useState, useMemo } from 'react';
-import { PageComponentProps, AuditLog } from '../../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { PageComponentProps, AuditLog, User } from '../../types';
 import { Card } from '../../components/common/Card';
 import { Table } from '../../components/common/Table';
-import { mockAuditLogs } from '../../data';
 import { formatDate } from '../../utils/formatters';
 import { Pagination } from '../../components/common/Pagination';
+import { supabase } from '../../supabaseClient';
 
-export const AdminAuditLog: React.FC<PageComponentProps> = () => {
-    const [logs] = useState<AuditLog[]>(mockAuditLogs.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+export const AdminAuditLog: React.FC<PageComponentProps> = ({ refreshKey }) => {
+    const [logs, setLogs] = useState<AuditLog[]>([]);
+    const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 10;
+
+    useEffect(() => {
+        const fetchLogs = async () => {
+            setLoading(true);
+            const { data: auditData, error: auditError } = await supabase
+                .from('audit_logs')
+                .select('user_id, action, entity_type, entity_id, timestamp, details, user_role, ip_address')
+                .order('timestamp', { ascending: false });
+
+            if (auditError) {
+                console.error("Error fetching audit logs", auditError);
+                setLogs([]);
+            } else if (auditData) {
+                const userIds = [...new Set(auditData.map(log => log.user_id).filter(Boolean))] as string[];
+                const { data: usersData } = await supabase.from('profiles').select('id, name').in('id', userIds);
+                const userMap = (usersData || []).reduce((acc: Record<string, string>, u: User) => {
+                    acc[u.id] = u.name;
+                    return acc;
+                }, {});
+
+                const formattedLogs = auditData.map(log => ({
+                    timestamp: log.timestamp,
+                    user: log.user_id ? userMap[log.user_id] || "ID: " + log.user_id.substring(0,8) : "Système",
+                    role: log.user_role || "N/A",
+                    action: log.action,
+                    entity: log.entity_id || log.entity_type || "Système",
+                    details: log.details ? JSON.stringify(log.details) : '',
+                    ip: log.ip_address || 'N/A',
+                }));
+                setLogs(formattedLogs);
+            }
+            setLoading(false);
+        };
+        fetchLogs();
+    }, [refreshKey]);
+
 
     const totalPages = Math.ceil(logs.length / ITEMS_PER_PAGE);
     const paginatedLogs = useMemo(() => {
@@ -28,6 +64,8 @@ export const AdminAuditLog: React.FC<PageComponentProps> = () => {
         log.details,
         log.ip
     ]);
+
+    if (loading) return <Card title="Journal d'Audit des Actions Système" icon="fa-clipboard-list">Chargement...</Card>;
 
     return (
         <Card title="Journal d'Audit des Actions Système" icon="fa-clipboard-list">

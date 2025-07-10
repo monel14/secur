@@ -53,7 +53,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ user, onUpdate
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-slate-800 rounded-lg">
                     <h4 className="font-semibold text-lg text-gray-700 dark:text-gray-200">Informations Chef d'Agence</h4>
                     <p>Solde Opérationnel: <span className="font-bold">{formatAmount(chef.solde || 0)}</span></p>
-                    <p>Commissions Dues: <span className="font-bold">{formatAmount(chef.commissions_perso_dues || 0)}</span></p>
+                    <p>Commissions Dues: <span className="font-bold">{formatAmount(chef.commissions_dues || 0)}</span></p>
                 </div>
             );
         }

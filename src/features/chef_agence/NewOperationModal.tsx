@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../../components/common/Modal';
 import { OperationType, ChefAgence, FormField, CommissionConfig } from '../../types';
@@ -27,10 +22,9 @@ export const NewOperationModal: React.FC<NewOperationModalProps> = ({ isOpen, on
     useEffect(() => {
         const fetchOpTypes = async () => {
             if (!user.agency_id) return;
-            const { data, error } = await supabase
-                .from('operation_types')
-                .select('id, name, description, impacts_balance, proof_is_required, status, fields, commission_config')
-                .eq('status', 'active');
+            const { data, error } = await supabase.rpc('get_available_op_types_for_agency', {
+                p_agency_id: user.agency_id,
+            });
             
             if (error) {
                 console.error(error)
@@ -104,15 +98,15 @@ export const NewOperationModal: React.FC<NewOperationModalProps> = ({ isOpen, on
     
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!isFormValid) return;
-        onSave({ opTypeId: selectedOpType?.id, formData, proofFile });
+        if (!isFormValid || !selectedOpType) return;
+        onSave({ opTypeId: selectedOpType.id, formData, proofFile });
         onClose();
     };
 
     const opFields = selectedOpType?.fields || [];
     const amountInput = opFields.find((f: any) => f.name.includes('montant'));
     const currentAmount = amountInput ? Number(formData[amountInput.name]) || 0 : 0;
-    const balanceAfter = selectedOpType?.impacts_balance ? (user.solde ?? 0) - currentAmount : user.solde;
+    const balanceAfter = selectedOpType?.impacts_balance ? (user.solde ?? 0) - currentAmount : (user.solde ?? 0);
 
     return (
         <Modal id="chef-new-operation-modal" title="Initier une Opération" isOpen={isOpen} onClose={onClose} size="modal-lg">

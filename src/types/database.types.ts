@@ -87,6 +87,121 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          details: Json | null
+          entity_id: string | null
+          entity_type: string | null
+          id: number
+          ip_address: string | null
+          timestamp: string
+          user_id: string | null
+          user_role: string | null
+        }
+        Insert: {
+          action: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: number
+          ip_address?: string | null
+          timestamp?: string
+          user_id?: string | null
+          user_role?: string | null
+        }
+        Update: {
+          action?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: number
+          ip_address?: string | null
+          timestamp?: string
+          user_id?: string | null
+          user_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_operation_access: {
+        Row: {
+          agency_id: string
+          created_at: string
+          op_type_id: string
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string
+          op_type_id: string
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string
+          op_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_operation_access_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_operation_access_op_type_id_fkey"
+            columns: ["op_type_id"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          icon: string
+          id: string
+          link: string | null
+          read: boolean
+          text: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          icon: string
+          id?: string
+          link?: string | null
+          read?: boolean
+          text: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          icon?: string
+          id?: string
+          link?: string | null
+          read?: boolean
+          text?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operation_types: {
         Row: {
           commission_config: Json | null
@@ -124,9 +239,11 @@ export type Database = {
         Row: {
           agency_id: string | null
           avatar_seed: string | null
+          commissions_dues: number
           email: string
           id: string
           name: string
+          permissions: Json | null
           role: string
           solde: number | null
           status: string
@@ -135,9 +252,11 @@ export type Database = {
         Insert: {
           agency_id?: string | null
           avatar_seed?: string | null
+          commissions_dues?: number
           email: string
           id: string
           name: string
+          permissions?: Json | null
           role?: string
           solde?: number | null
           status?: string
@@ -146,9 +265,11 @@ export type Database = {
         Update: {
           agency_id?: string | null
           avatar_seed?: string | null
+          commissions_dues?: number
           email?: string
           id?: string
           name?: string
+          permissions?: Json | null
           role?: string
           solde?: number | null
           status?: string
@@ -156,12 +277,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_agency"
+            foreignKeyName: "profiles_agency_id_fkey"
             columns: ["agency_id"]
             isOneToOne: false
             referencedRelation: "agencies"
             referencedColumns: ["id"]
-          }
+          },
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       requests: {
@@ -316,6 +444,72 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_agent_recharge: {
+        Args: {
+          p_request_id: string
+          p_approving_chef_id: string
+        }
+        Returns: undefined
+      }
+      create_secure_transaction: {
+        Args: {
+          p_agent_id: string
+          p_op_type_id: string
+          p_data: Json
+          p_proof_url: string | null
+        }
+        Returns: string
+      }
+      direct_recharge_agent: {
+        Args: {
+          p_agent_id: string
+          p_chef_id: string
+          p_recharge_amount: number
+        }
+        Returns: undefined
+      }
+      get_agent_dashboard_stats: {
+        Args: {
+          p_agent_id: string
+        }
+        Returns: Json
+      }
+      get_agency_list_with_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          chef_id: string | null
+          chef_name: string | null
+          chef_avatar_seed: string | null
+          agent_count: number
+        }[]
+      }
+      get_available_op_types_for_agency: {
+        Args: {
+          p_agency_id: string
+        }
+        Returns: {
+          id: string
+          name: string
+          description: string | null
+          status: string
+          impacts_balance: boolean
+          proof_is_required: boolean
+          fields: Json | null
+          commission_config: Json | null
+        }[]
+      }
+      get_chef_dashboard_stats: {
+        Args: {
+          p_chef_id: string
+        }
+        Returns: Json
+      }
+      get_global_dashboard_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_my_agency_id: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -323,6 +517,55 @@ export type Database = {
       get_my_role: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_sous_admin_dashboard_stats: {
+        Args: {
+          p_sous_admin_id: string
+        }
+        Returns: Json
+      }
+      get_sub_admin_list_with_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          email: string
+          avatar_seed: string | null
+          status: string
+          suspension_reason: string | null
+          permissions: Json | null
+          assigned_tasks: number
+        }[]
+      }
+      transfer_commissions_to_balance: {
+        Args: {
+          p_user_id: string
+          p_amount: number
+        }
+        Returns: undefined
+      }
+      update_agency_op_access: {
+        Args: {
+          p_agency_id: string
+          p_op_type_ids: string[]
+        }
+        Returns: undefined
+      }
+      update_transaction_status: {
+        Args: {
+          p_transaction_id: string
+          p_new_status: string
+          p_rejection_reason?: string | null
+        }
+        Returns: undefined
+      }
+      update_user_status: {
+        Args: {
+          p_target_user_id: string
+          p_new_status: string
+          p_reason?: string | null
+        }
+        Returns: undefined
       }
     }
     Enums: {

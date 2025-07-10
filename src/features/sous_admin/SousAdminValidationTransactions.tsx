@@ -30,7 +30,7 @@ export const SousAdminValidationTransactions: React.FC<PageComponentProps> = (pr
         };
 
         fetchPendingTransactions();
-    }, []);
+    }, [props.refreshKey]);
 
     if (loading) {
         return <div>Chargement des transactions...</div>;

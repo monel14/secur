@@ -6,73 +6,32 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SecureTrans - Plateforme de Transfert</title>
-    <meta name="description" content="Plateforme sécurisée de transfert d'argent et services financiers" />
-    <meta name="keywords" content="transfert, argent, sécurité, finances, transaction" />
-    
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Custom CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="./index.css" />
-    
-    <!-- Environment Variables -->
     <script>
-      // Configuration pour Supabase et autres services
+      // Polyfill for process.env used by Supabase client
+      // IMPORTANT: Remplacez ces valeurs par les détails de votre propre projet Supabase.
+      // Vous pouvez trouver ces informations dans les paramètres de votre projet Supabase > API.
       var process = { env: {
-        SUPABASE_URL: 'https://dkocbwwzvojwmejfrskk.supabase.co',
-        SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrb2Nid3d6dm9qd21lamZyc2trIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE4OTY1MDYsImV4cCI6MjA2NzQ3MjUwNn0.gVcgFreKmBzdk_JKNOdMOpJzJpxJXaldvS2_w38Uqmg',
-        GEMINI_API_KEY: 'your_gemini_api_key_here'
+        SUPABASE_URL: 'https://dkocbwwzvojwmejfrskk.supabase.co', // Remplacez par l'URL de votre projet Supabase
+        SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrb2Nid3d6dm9qd21lamZyc2trIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE4OTY1MDYsImV4cCI6MjA2NzQ3MjUwNn0.gVcgFreKmBzdk_JKNOdMOpJzJpxJXaldvS2_w38Uqmg' // Remplacez par votre clé "anon" Supabase
       } };
     </script>
-    
-    <!-- Tailwind Configuration -->
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              'inter': ['Inter', 'sans-serif'],
-            },
-            animation: {
-              'fade-in': 'fadeIn 0.5s ease-in-out',
-              'slide-in': 'slideIn 0.3s ease-out',
-            },
-            keyframes: {
-              fadeIn: {
-                '0%': { opacity: '0' },
-                '100%': { opacity: '1' },
-              },
-              slideIn: {
-                '0%': { transform: 'translateX(-100%)' },
-                '100%': { transform: 'translateX(0)' },
-              },
-            },
-          },
-        },
-      }
-    </script>
-    
-    <!-- Import Map for ES modules -->
     <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@^19.1.0",
-        "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
-        "react/": "https://esm.sh/react@^19.1.0/",
-        "react-router-dom": "https://esm.sh/react-router-dom@^6.28.0",
-        "@google/genai": "https://esm.sh/@google/genai@^1.8.0",
-        "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.45.0"
-      }
-    }
-    </script>
-  </head>
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.45.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.8.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>

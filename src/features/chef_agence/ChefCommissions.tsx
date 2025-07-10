@@ -1,11 +1,7 @@
 
 
-
-
-
-
 import React, { useState, useEffect } from 'react';
-import { PageComponentProps, ChefAgence, Transaction, Agent } from '../../types';
+import { PageComponentProps, ChefAgence, Transaction, OperationType } from '../../types';
 import { Card } from '../../components/common/Card';
 import { Table } from '../../components/common/Table';
 import { formatAmount, formatDate } from '../../utils/formatters';
@@ -89,6 +85,7 @@ const AgentCommissionLeaderboard: React.FC<{ agencyId: string }> = ({ agencyId }
 export const ChefCommissions: React.FC<PageComponentProps> = ({ user, navigateTo, handleAction }) => {
     const chefUser = user as ChefAgence;
     const [personalTxs, setPersonalTxs] = useState<Transaction[]>([]);
+    const [opTypes, setOpTypes] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -102,10 +99,19 @@ export const ChefCommissions: React.FC<PageComponentProps> = ({ user, navigateTo
                 .gt('commission_generee', 0)
                 .order('created_at', { ascending: false });
 
-            if (error) {
-                console.error(error);
+            const { data: opTypesData, error: opTypesError } = await supabase
+                .from('operation_types')
+                .select('id, name');
+
+            if (error || opTypesError) {
+                console.error(error || opTypesError);
             } else {
                 setPersonalTxs((data as unknown as Transaction[]) || []);
+                const opTypesMap = (opTypesData || []).reduce((acc, op) => {
+                    acc[op.id] = op.name;
+                    return acc;
+                }, {} as Record<string, string>);
+                setOpTypes(opTypesMap);
             }
             setLoading(false);
         };
@@ -115,8 +121,8 @@ export const ChefCommissions: React.FC<PageComponentProps> = ({ user, navigateTo
     const headers = ['Date Op.', 'ID Op.', 'Type Op.', 'Montant Op.', 'Commission Générée'];
     const rows = personalTxs.map(t => [
         formatDate(t.created_at).split(' ')[0],
-        t.id,
-        t.op_type_id, // This should be mapped to a name in a real app
+        t.id.substring(0, 8) + '...',
+        opTypes[t.op_type_id] || t.op_type_id,
         formatAmount(t.montant_principal),
         formatAmount(t.commission_generee)
     ]);
@@ -127,7 +133,12 @@ export const ChefCommissions: React.FC<PageComponentProps> = ({ user, navigateTo
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
                 <Card title="Mes Commissions Personnelles" icon="fa-coins">
-                    <p className="text-lg mb-4">Commissions Personnelles Dues : <span className="font-bold text-purple-600">{formatAmount(chefUser.commissions_perso_dues || 0)}</span></p>
+                    <div className="p-4 mb-4 bg-purple-50 border border-purple-200 rounded-lg flex justify-between items-center">
+                        <p className="text-lg">Commissions Personnelles Dues : <span className="font-bold text-purple-600">{formatAmount(chefUser.commissions_dues || 0)}</span></p>
+                        <button className="btn btn-primary" onClick={() => handleAction('openTransferCommissionsModal')}>
+                            <i className="fas fa-exchange-alt mr-2"></i>Virer vers Solde
+                        </button>
+                    </div>
                     <Table headers={headers} rows={rows} caption="Détail de vos commissions personnelles" tableClasses="w-full table table-sm" />
                 </Card>
             </div>

@@ -1,39 +1,52 @@
-
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../../components/common/Modal';
 import { Agency, ChefAgence, User } from '../../types';
-import { mockAgencies } from '../../data';
+import { supabase } from '../../supabaseClient';
 
 interface EditAgencyModalProps {
     isOpen: boolean;
     onClose: () => void;
     agencyId: string | null;
     onSave: (agency: Agency) => void;
-    users: { [id: string]: User };
 }
 
-const EditAgencyModal: React.FC<EditAgencyModalProps> = ({ isOpen, onClose, agencyId, onSave, users }) => {
+const EditAgencyModal: React.FC<EditAgencyModalProps> = ({ isOpen, onClose, agencyId, onSave }) => {
     const [name, setName] = useState('');
     const [chef_id, setChefId] = useState<string | null>('');
-
-    const availableChefs = Object.values(users).filter((u): u is ChefAgence => 
-        u.role === 'chef_agence' && (!u.agency_id || u.agency_id === agencyId)
-    );
+    const [availableChefs, setAvailableChefs] = useState<ChefAgence[]>([]);
+    const [allUsers, setAllUsers] = useState<Record<string, User>>({});
 
     useEffect(() => {
-        if (isOpen) {
-            if (agencyId) {
-                const agency = mockAgencies.find(a => a.id === agencyId);
-                if (agency) {
-                    setName(agency.name);
-                    setChefId(agency.chef_id);
+        const fetchPrerequisites = async () => {
+            if (isOpen) {
+                // Fetch all users to display the currently assigned chef even if they manage another agency
+                const { data: usersData, error: usersError } = await supabase.from('profiles').select('*');
+                 if(usersError) { console.error(usersError); return; }
+                 const usersMap = (usersData || []).reduce((acc, u) => { acc[u.id] = u as User; return acc; }, {} as Record<string, User>);
+                 setAllUsers(usersMap);
+
+                // Fetch available chefs (those with no agency_id or assigned to the current agency)
+                const { data: chefsData, error: chefsError } = await supabase.from('profiles').select('*').eq('role', 'chef_agence');
+                if (chefsError) { console.error(chefsError); return; }
+                const chefs = (chefsData || []) as ChefAgence[];
+                const unassignedOrCurrent = chefs.filter(c => !c.agency_id || c.agency_id === agencyId);
+                setAvailableChefs(unassignedOrCurrent);
+
+                if (agencyId) {
+                    const { data: agency, error } = await supabase.from('agencies').select('*').eq('id', agencyId).single();
+                    if (error) { console.error(error); }
+                    else if (agency) {
+                        setName(agency.name);
+                        setChefId(agency.chef_id);
+                    }
+                } else {
+                    // Reset for creation
+                    setName('');
+                    setChefId('');
                 }
-            } else {
-                // Reset for creation
-                setName('');
-                setChefId('');
             }
-        }
+        };
+        fetchPrerequisites();
     }, [isOpen, agencyId]);
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -74,12 +87,13 @@ const EditAgencyModal: React.FC<EditAgencyModalProps> = ({ isOpen, onClose, agen
                         value={chef_id || ''}
                         onChange={e => setChefId(e.target.value)}
                     >
-                        <option value="" disabled>-- Sélectionner un chef d'agence --</option>
+                        <option value="">-- Aucun --</option>
                         {availableChefs.map(chef => (
                             <option key={chef.id} value={chef.id}>{chef.name}</option>
                         ))}
-                         {chef_id && !availableChefs.some(c => c.id === chef_id) && users[chef_id] && (
-                            <option key={chef_id} value={chef_id}>{users[chef_id].name}</option>
+                         {/* Ensure the currently assigned chef is in the list even if they are not "available" */}
+                         {chef_id && !availableChefs.some(c => c.id === chef_id) && allUsers[chef_id] && (
+                            <option key={chef_id} value={chef_id}>{allUsers[chef_id].name}</option>
                          )}
                     </select>
                     <p className="text-xs text-gray-500 mt-1">La liste contient les chefs d'agences disponibles ou celui déjà assigné.</p>

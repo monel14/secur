@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export type Json =
@@ -33,7 +34,7 @@ export interface ChefAgence extends BaseUser {
   role: 'chef_agence';
   agency_id: string | null;
   solde: number | null;
-  commissions_perso_dues?: number;
+  commissions_dues?: number;
   volume_agence_mois?: number;
   commissions_agence_mois?: number;
   agents_actifs?: number;
@@ -179,6 +180,7 @@ export interface PageComponentProps {
     user: User;
     navigateTo: (pageKey: string, data?: any) => void;
     handleAction: (actionKey: string, data?: any) => void;
+    refreshKey?: number;
 }
 
 export interface NavLink {

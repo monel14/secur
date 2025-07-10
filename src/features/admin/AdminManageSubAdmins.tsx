@@ -1,10 +1,10 @@
 
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { PageComponentProps, SousAdmin } from '../../types';
 import { Card } from '../../components/common/Card';
-import { users, mockTransactions } from '../../data';
 import { Pagination } from '../../components/common/Pagination';
+import { supabase } from '../../supabaseClient';
 
 const StatCard: React.FC<{ title: string; value: string | number; icon: string }> = ({ title, value, icon }) => (
     <div className="card p-4">
@@ -21,10 +21,9 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: string }
 );
 
 const SubAdminCard: React.FC<{
-    subAdmin: SousAdmin;
-    assignedTasks: number;
+    subAdmin: SousAdmin & { assigned_tasks: number };
     onAction: (action: string, data: any) => void;
-}> = ({ subAdmin, assignedTasks, onAction }) => {
+}> = ({ subAdmin, onAction }) => {
     
     return (
         <div className={`card flex flex-col justify-between hover:shadow-xl transition-all duration-300 ${subAdmin.status === 'suspended' ? 'bg-gray-100 opacity-70' : ''}`}>
@@ -43,7 +42,7 @@ const SubAdminCard: React.FC<{
                 <div className="my-4 space-y-3">
                     <div>
                         <p className="text-sm font-semibold text-gray-600 mb-1">Tâches assignées</p>
-                        <p className="text-2xl font-bold text-blue-600">{assignedTasks}</p>
+                        <p className="text-2xl font-bold text-blue-600">{subAdmin.assigned_tasks}</p>
                     </div>
                      {subAdmin.status === 'suspended' && subAdmin.suspension_reason && (
                         <div>
@@ -70,7 +69,7 @@ const SubAdminCard: React.FC<{
                 <button
                     className="btn btn-sm btn-info text-white"
                     title="Modifier Permissions"
-                    onClick={() => onAction('openSubAdminPermissionsModal', subAdmin.id)}
+                    onClick={() => onAction('openSubAdminPermissionsModal', subAdmin)}
                     disabled={subAdmin.status === 'suspended'}
                 >
                     <i className="fas fa-user-shield mr-1"></i> Permissions
@@ -89,22 +88,41 @@ const SubAdminCard: React.FC<{
 };
 
 
-export const AdminManageSubAdmins: React.FC<PageComponentProps> = ({ handleAction }) => {
+export const AdminManageSubAdmins: React.FC<PageComponentProps> = ({ handleAction, refreshKey }) => {
+    const [subAdmins, setSubAdmins] = useState<(SousAdmin & { assigned_tasks: number })[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 6;
+    
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            const { data, error } = await supabase.rpc('get_sub_admin_list_with_stats');
 
-    const subAdminsData = useMemo(() => {
-        return Object.values(users).filter((u): u is SousAdmin => u.role === 'sous_admin');
-    }, [users]);
+            if (error) {
+                console.error("Error fetching sub-admins with stats:", error);
+                setSubAdmins([]);
+            } else {
+                const subAdminsData = (data || []).map(sa => ({
+                    ...sa,
+                    role: 'sous_admin',
+                    permissions: sa.permissions as SousAdmin['permissions'],
+                })) as (SousAdmin & { assigned_tasks: number })[];
+                setSubAdmins(subAdminsData);
+            }
+            setLoading(false);
+        };
+        fetchData();
+    }, [refreshKey]);
 
     const filteredSubAdmins = useMemo(() => {
-        if (!searchTerm) return subAdminsData;
-        return subAdminsData.filter(sa =>
+        if (!searchTerm) return subAdmins;
+        return subAdmins.filter(sa =>
             sa.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             sa.email.toLowerCase().includes(searchTerm.toLowerCase())
         );
-    }, [searchTerm, subAdminsData]);
+    }, [searchTerm, subAdmins]);
     
     const paginatedSubAdmins = useMemo(() => {
         return filteredSubAdmins.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -117,15 +135,16 @@ export const AdminManageSubAdmins: React.FC<PageComponentProps> = ({ handleActio
         setCurrentPage(1);
     }
     
-    const totalAssignedTasks = mockTransactions.filter(t => t.assigned_to && users[t.assigned_to]?.role === 'sous_admin').length;
-    const totalCompletedTasks = mockTransactions.filter(t => t.validateur_id && users[t.validateur_id]?.role === 'sous_admin').length;
+    if (loading) return <Card title="Gestion des Sous-Administrateurs" icon="fa-users-cog">Chargement...</Card>;
+    
+    const totalAssignedTasks = subAdmins.reduce((sum, sa) => sum + (sa.assigned_tasks || 0), 0);
 
     return (
         <>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-                <StatCard title="Total Sous-Admins" value={subAdminsData.length} icon="fa-user-shield" />
+                <StatCard title="Total Sous-Admins" value={subAdmins.length} icon="fa-user-shield" />
                 <StatCard title="Tâches Assignées" value={totalAssignedTasks} icon="fa-tasks" />
-                <StatCard title="Tâches Traitées (Mois)" value={totalCompletedTasks} icon="fa-check-double" />
+                <StatCard title="Tâches Traitées (Mois)" value={0} icon="fa-check-double" />
             </div>
 
             <Card title="Gestion des Sous-Administrateurs" icon="fa-users-cog">
@@ -146,10 +165,9 @@ export const AdminManageSubAdmins: React.FC<PageComponentProps> = ({ handleActio
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-                    {paginatedSubAdmins.map(sa => {
-                        const assignedTasks = mockTransactions.filter(t => t.assigned_to === sa.id).length;
-                        return <SubAdminCard key={sa.id} subAdmin={sa} assignedTasks={assignedTasks} onAction={handleAction} />
-                    })}
+                    {paginatedSubAdmins.map(sa => (
+                        <SubAdminCard key={sa.id} subAdmin={sa} onAction={handleAction} />
+                    ))}
                 </div>
                 {filteredSubAdmins.length === 0 && (
                     <div className="text-center py-10 text-gray-500">

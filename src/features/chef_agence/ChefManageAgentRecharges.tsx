@@ -1,12 +1,12 @@
 
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { PageComponentProps, ChefAgence, Agent, AgentRechargeRequest } from '../../types';
 import { Card } from '../../components/common/Card';
-import { users, mockAgentRechargeRequests } from '../../data';
 import { formatAmount, formatDate, timeAgo } from '../../utils/formatters';
 import { getBadgeClass } from '../../utils/uiHelpers';
 import { Pagination } from '../../components/common/Pagination';
+import { supabase } from '../../supabaseClient';
 
 // Sub-component for pending request cards
 const PendingRequestCard: React.FC<{
@@ -62,23 +62,48 @@ const PendingRequestCard: React.FC<{
 }
 
 // Main component
-export const ChefManageAgentRecharges: React.FC<PageComponentProps> = ({ user, handleAction }) => {
+export const ChefManageAgentRecharges: React.FC<PageComponentProps> = ({ user, handleAction, refreshKey }) => {
     const chefUser = user as ChefAgence;
+    const [allRecharges, setAllRecharges] = useState<AgentRechargeRequest[]>([]);
+    const [agents, setAgents] = useState<Agent[]>([]);
+    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('pending');
     const [pendingPage, setPendingPage] = useState(1);
     const [historyPage, setHistoryPage] = useState(1);
     const PENDING_ITEMS_PER_PAGE = 6;
     const HISTORY_ITEMS_PER_PAGE = 10;
 
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            const { data: rechargesData, error: rechargesError } = await supabase
+                .from('agent_recharge_requests')
+                .select('*')
+                .eq('chef_agence_id', chefUser.id)
+                .order('created_at', { ascending: false });
+
+            const { data: agentsData, error: agentsError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('agency_id', chefUser.agency_id)
+                .eq('role', 'agent');
+
+            if (rechargesError || agentsError) {
+                console.error(rechargesError || agentsError);
+            } else {
+                setAllRecharges(rechargesData || []);
+                setAgents(agentsData as Agent[] || []);
+            }
+            setLoading(false);
+        };
+        fetchData();
+    }, [chefUser.id, chefUser.agency_id, refreshKey]);
+
     const { pendingRecharges, historyRecharges } = useMemo(() => {
-        const allRecharges = [...mockAgentRechargeRequests] // Create a mutable copy
-            .filter(r => r.chef_agence_id === chefUser.id)
-            .sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-            
         const pending = allRecharges.filter(r => r.status === 'En attente Chef Agence');
         const history = allRecharges.filter(r => r.status !== 'En attente Chef Agence');
         return { pendingRecharges: pending, historyRecharges: history };
-    }, [mockAgentRechargeRequests, chefUser.id]);
+    }, [allRecharges]);
     
     // Pagination for Pending Tab
     const totalPendingPages = Math.ceil(pendingRecharges.length / PENDING_ITEMS_PER_PAGE);
@@ -98,7 +123,7 @@ export const ChefManageAgentRecharges: React.FC<PageComponentProps> = ({ user, h
     const renderHistoryTable = () => {
         const headers = ['Date Traitement', 'Agent', 'Montant', 'Statut', 'Motif/Raison'];
         const rows = paginatedHistory.map(req => {
-            const agent = users[req.agent_id] as Agent;
+            const agent = agents.find(a => a.id === req.agent_id);
             return [
                 formatDate(req.processing_date),
                 agent?.name || 'N/A',
@@ -116,7 +141,7 @@ export const ChefManageAgentRecharges: React.FC<PageComponentProps> = ({ user, h
                         <tbody>
                             {rows.length > 0 ? (
                                 rows.map((row, i) => (
-                                    <tr key={i}>{row.map((cell, j) => <td key={j} className="!p-3" dangerouslySetInnerHTML={{__html: cell?.toString() || '-'}}></td>)}</tr>
+                                    <tr key={paginatedHistory[i].id}>{row.map((cell, j) => <td key={j} className="!p-3" dangerouslySetInnerHTML={{__html: cell?.toString() || '-'}}></td>)}</tr>
                                 ))
                             ) : (
                                 <tr><td colSpan={headers.length} className="text-center text-gray-500 py-6">Aucun historique de demande.</td></tr>
@@ -133,7 +158,7 @@ export const ChefManageAgentRecharges: React.FC<PageComponentProps> = ({ user, h
         <div className="mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {paginatedPending.map(req => {
-                    const agent = Object.values(users).find(u => u.id === req.agent_id) as Agent | undefined;
+                    const agent = agents.find(u => u.id === req.agent_id);
                     return <PendingRequestCard key={req.id} request={req} agent={agent} onAction={handleAction} />;
                 })}
             </div>
@@ -141,6 +166,8 @@ export const ChefManageAgentRecharges: React.FC<PageComponentProps> = ({ user, h
         </div>
     );
     
+    if (loading) return <Card title="Demandes de Recharge des Agents" icon="fa-wallet">Chargement...</Card>;
+
     return (
         <Card title="Demandes de Recharge des Agents" icon="fa-wallet">
              <div className="tabs">

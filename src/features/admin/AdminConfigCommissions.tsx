@@ -4,6 +4,8 @@
 
 
 
+
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { PageComponentProps, OperationType, CommissionTier, CommissionConfig, FormField } from '../../types';
 import { Card } from '../../components/common/Card';
@@ -82,25 +84,31 @@ export const AdminConfigCommissions: React.FC<AdminConfigCommissionsProps> = ({ 
         });
     };
     
-    const handleTierChange = (index: number, field: keyof CommissionTier, value: any) => {
+    const handleTierChange = (index: number, field: keyof CommissionTier, value: string) => {
         if (!editingConfig) return;
-        
-        const commissionConfig = editingConfig.commission_config;
-        if (!commissionConfig.tiers) return;
 
         setEditingConfig(prev => {
-            if (!prev) return prev;
-            const prevCommissionConfig = prev.commission_config;
-            if (!prevCommissionConfig.tiers) return prev;
+            if (!prev) return null;
+            const commissionConfig = prev.commission_config;
+            if (!commissionConfig.tiers) return prev;
 
-            const newTiers = [...prevCommissionConfig.tiers];
-            const tier = {...newTiers[index]};
-            (tier as any)[field] = field === 'to' && value === '' ? Infinity : value;
-            newTiers[index] = tier;
+            const newTiers = [...commissionConfig.tiers];
+            const tierToUpdate = { ...newTiers[index] };
+
+            if (field === 'from') {
+                tierToUpdate.from = Number(value);
+            } else if (field === 'to') {
+                tierToUpdate.to = value === '' ? null : Number(value);
+            } else if (field === 'commission') {
+                tierToUpdate.commission = value;
+            }
+
+            newTiers[index] = tierToUpdate;
+
             return {
                 ...prev,
                 commission_config: {
-                    ...prevCommissionConfig,
+                    ...prev.commission_config,
                     tiers: newTiers,
                 },
             };
@@ -109,7 +117,7 @@ export const AdminConfigCommissions: React.FC<AdminConfigCommissionsProps> = ({ 
 
     const addTier = () => {
         if (!editingConfig) return;
-        const newTier: CommissionTier = { from: 0, to: Infinity, commission: 0 };
+        const newTier: CommissionTier = { from: 0, to: null, commission: 0 };
         setEditingConfig(prev => {
             if (!prev) return null;
             const commissionConfig = prev.commission_config;
@@ -253,8 +261,8 @@ export const AdminConfigCommissions: React.FC<AdminConfigCommissionsProps> = ({ 
                                         <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                                             {currentCommissionConfig.tiers?.map((tier, index) => (
                                                 <div key={index} className="grid grid-cols-10 gap-x-2 items-center">
-                                                    <input type="number" value={tier.from} onChange={e => handleTierChange(index, 'from', Number(e.target.value))} className="form-input form-input-sm col-span-3" />
-                                                    <input type="number" value={tier.to === Infinity ? '' : tier.to} onChange={e => handleTierChange(index, 'to', e.target.value)} className="form-input form-input-sm col-span-3" placeholder="Infini"/>
+                                                    <input type="number" value={tier.from} onChange={e => handleTierChange(index, 'from', e.target.value)} className="form-input form-input-sm col-span-3" />
+                                                    <input type="number" value={tier.to === null ? '' : tier.to} onChange={e => handleTierChange(index, 'to', e.target.value)} className="form-input form-input-sm col-span-3" placeholder="Infini"/>
                                                     <input type="text" value={tier.commission as string} onChange={e => handleTierChange(index, 'commission', e.target.value)} className="form-input form-input-sm col-span-3" placeholder="500 ou 1.5%"/>
                                                     <button type="button" onClick={() => removeTier(index)} className="btn btn-danger btn-xs"><i className="fas fa-trash"></i></button>
                                                 </div>

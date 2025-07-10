@@ -7,7 +7,7 @@ interface SuspendUserModalProps {
     isOpen: boolean;
     onClose: () => void;
     user: SousAdmin | null;
-    onConfirm: (userId: string, reason: string | null) => void;
+    onConfirm: (user: SousAdmin, reason: string | null) => void;
 }
 
 export const SuspendUserModal: React.FC<SuspendUserModalProps> = ({ isOpen, onClose, user, onConfirm }) => {
@@ -26,7 +26,7 @@ export const SuspendUserModal: React.FC<SuspendUserModalProps> = ({ isOpen, onCl
     
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onConfirm(user.id, isSuspending ? reason : null);
+        onConfirm(user, isSuspending ? reason : null);
         onClose();
     };
 

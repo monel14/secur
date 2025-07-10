@@ -1,11 +1,11 @@
 
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { PageComponentProps, ChefAgence, Agent } from '../../types';
 import { Card } from '../../components/common/Card';
-import { users } from '../../data';
 import { formatAmount } from '../../utils/formatters';
 import { Pagination } from '../../components/common/Pagination';
+import { supabase } from '../../supabaseClient';
 
 const StatCard: React.FC<{ title: string; value: string | number; icon: string }> = ({ title, value, icon }) => (
     <div className="card p-4">
@@ -44,7 +44,7 @@ const AgentCardComponent: React.FC<{ agent: Agent; onAction: (action: string, da
                 <div className="my-4 grid grid-cols-1 gap-4 text-sm">
                      <div className="text-center">
                         <p className="text-gray-500">Transactions (mois)</p>
-                        <p className="font-semibold text-lg">{agent.transactions_this_month}</p>
+                        <p className="font-semibold text-lg">{agent.transactions_this_month || 0}</p>
                     </div>
                 </div>
                 {agent.status === 'suspended' && agent.suspension_reason &&
@@ -65,17 +65,38 @@ const AgentCardComponent: React.FC<{ agent: Agent; onAction: (action: string, da
 };
 
 
-export const ChefManageAgents: React.FC<PageComponentProps> = ({ user, handleAction }) => {
+export const ChefManageAgents: React.FC<PageComponentProps> = ({ user, handleAction, refreshKey }) => {
     const chefUser = user as ChefAgence;
+    const [myAgents, setMyAgents] = useState<Agent[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 6;
+    
+    useEffect(() => {
+        const fetchAgents = async () => {
+            if (!chefUser.agency_id) {
+                setLoading(false);
+                return;
+            }
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('role', 'agent')
+                .eq('agency_id', chefUser.agency_id);
+            
+            if (error) {
+                console.error("Error fetching agents:", error);
+            } else {
+                setMyAgents((data as unknown as Agent[]) || []);
+            }
+            setLoading(false);
+        };
+        fetchAgents();
+    }, [chefUser.agency_id, refreshKey]);
 
-    const myAgents = useMemo(() =>
-        Object.values(users).filter((u): u is Agent => 
-            u.role === 'agent' && u.agency_id === chefUser.agency_id
-        ), [users, chefUser.agency_id]);
 
     const filteredAgents = useMemo(() => {
         return myAgents.filter(agent => {
@@ -107,6 +128,7 @@ export const ChefManageAgents: React.FC<PageComponentProps> = ({ user, handleAct
         setCurrentPage(1);
     }
 
+    if (loading) return <Card title="Gestion de Mes Agents" icon="fa-users-cog">Chargement des agents...</Card>;
 
     return (
         <>

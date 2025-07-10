@@ -4,6 +4,8 @@
 
 
 
+
+
 import React, { useState, useEffect } from 'react';
 import { PageComponentProps, Transaction, User, Request, Agent, ChefAgence, AdminGeneral, SousAdmin, Developpeur, OperationType } from '../../types';
 import { Card } from '../../components/common/Card';
@@ -103,8 +105,8 @@ export const AdminQueue: React.FC<AdminQueueProps> = ({ title, icon, items, user
         if (action === 'assign-self') handleAction('assignTask', { ...data, targetUserId: user.id });
         if (action === 'unassign') handleAction('assignTask', { ...data, targetUserId: null });
         if (action === 'assign-other') handleAction('openAssignModal', data);
-        if (action === 'validate') alert(`Validation de ${id} simulée.`);
-        if (action === 'reject') alert(`Rejet de ${id} simulé.`);
+        if (action === 'validate') handleAction('validate', item);
+        if (action === 'reject') handleAction('openRejectTransactionModal', item);
         if (action === 'process-request') handleAction('openProcessRequestModal', item);
     };
 

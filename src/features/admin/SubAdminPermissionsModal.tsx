@@ -11,15 +11,17 @@ interface SubAdminPermissionsModalProps {
     onSave: (id: string, permissions: SousAdmin['permissions']) => void;
 }
 
+const defaultPermissions = {
+    can_validate_transactions: false,
+    can_manage_requests: false,
+};
+
 export const SubAdminPermissionsModal: React.FC<SubAdminPermissionsModalProps> = ({ isOpen, onClose, subAdmin, onSave }) => {
-    const [permissions, setPermissions] = useState<SousAdmin['permissions']>({
-        can_validate_transactions: false,
-        can_manage_requests: false,
-    });
+    const [permissions, setPermissions] = useState<SousAdmin['permissions']>(defaultPermissions);
 
     useEffect(() => {
         if (subAdmin) {
-            setPermissions(subAdmin.permissions);
+            setPermissions(subAdmin.permissions || defaultPermissions);
         }
     }, [subAdmin]);
 
@@ -54,7 +56,7 @@ export const SubAdminPermissionsModal: React.FC<SubAdminPermissionsModalProps> =
                                 type="checkbox"
                                 id="perm-validate"
                                 name="can_validate_transactions"
-                                checked={permissions.can_validate_transactions}
+                                checked={permissions?.can_validate_transactions}
                                 onChange={handleCheckboxChange}
                                 className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-4 mt-1"
                             />
@@ -70,7 +72,7 @@ export const SubAdminPermissionsModal: React.FC<SubAdminPermissionsModalProps> =
                                 type="checkbox"
                                 id="perm-requests"
                                 name="can_manage_requests"
-                                checked={permissions.can_manage_requests}
+                                checked={permissions?.can_manage_requests}
                                 onChange={handleCheckboxChange}
                                 className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-4 mt-1"
                             />

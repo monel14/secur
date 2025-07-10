@@ -14,13 +14,14 @@ interface TransferCommissionsModalProps {
 export const TransferCommissionsModal: React.FC<TransferCommissionsModalProps> = ({ isOpen, onClose, onConfirm, chef }) => {
     const [amount, setAmount] = useState<number | ''>('');
     const [error, setError] = useState('');
+    const commissionsDues = chef.commissions_dues || 0;
 
     useEffect(() => {
         if (isOpen) {
-            setAmount(chef.commissions_perso_dues); // Pre-fill with max amount
+            setAmount(commissionsDues); // Pre-fill with max amount
             setError('');
         }
-    }, [isOpen, chef.commissions_perso_dues]);
+    }, [isOpen, commissionsDues]);
 
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -30,9 +31,9 @@ export const TransferCommissionsModal: React.FC<TransferCommissionsModalProps> =
             return;
         }
         const numValue = Number(value);
-        if (numValue > chef.commissions_perso_dues) {
+        if (numValue > commissionsDues) {
             setError('Le montant ne peut pas dépasser les commissions dues.');
-            setAmount(chef.commissions_perso_dues);
+            setAmount(commissionsDues);
         } else if (numValue < 0) {
             setError('Le montant doit être positif.');
             setAmount(0);
@@ -43,15 +44,15 @@ export const TransferCommissionsModal: React.FC<TransferCommissionsModalProps> =
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (typeof amount !== 'number' || amount <= 0 || amount > chef.commissions_perso_dues) {
+        if (typeof amount !== 'number' || amount <= 0 || amount > commissionsDues) {
             setError('Veuillez saisir un montant valide.');
             return;
         }
         onConfirm(amount);
     };
 
-    const commissionsAfter = typeof amount === 'number' ? chef.commissions_perso_dues - amount : chef.commissions_perso_dues;
-    const balanceAfter = typeof amount === 'number' ? chef.solde + amount : chef.solde;
+    const commissionsAfter = typeof amount === 'number' ? commissionsDues - amount : commissionsDues;
+    const balanceAfter = typeof amount === 'number' ? (chef.solde || 0) + amount : chef.solde;
 
     return (
         <Modal
@@ -66,7 +67,7 @@ export const TransferCommissionsModal: React.FC<TransferCommissionsModalProps> =
                 <div className="grid grid-cols-2 gap-4 mb-4 text-center">
                     <div className="p-3 bg-purple-100 rounded-lg">
                         <p className="text-sm text-purple-700">Commissions Dues</p>
-                        <p className="text-lg font-bold text-purple-800">{formatAmount(chef.commissions_perso_dues)}</p>
+                        <p className="text-lg font-bold text-purple-800">{formatAmount(commissionsDues)}</p>
                     </div>
                     <div className="p-3 bg-blue-100 rounded-lg">
                         <p className="text-sm text-blue-700">Solde Opérationnel</p>
@@ -90,7 +91,7 @@ export const TransferCommissionsModal: React.FC<TransferCommissionsModalProps> =
                         className="form-input"
                         value={amount}
                         onChange={handleAmountChange}
-                        max={chef.commissions_perso_dues}
+                        max={commissionsDues}
                         required
                     />
                     {error && <p className="text-red-500 text-sm mt-1">{error}</p>}

@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../../components/common/Modal';
-import { Request } from '../../types';
-import { users } from '../../data';
+import { Request, User } from '../../types';
 import { formatDate } from '../../utils/formatters';
 import { getBadgeClass } from '../../utils/uiHelpers';
+import { supabase } from '../../supabaseClient';
 
 interface ProcessRequestModalProps {
     isOpen: boolean;
@@ -15,12 +15,25 @@ interface ProcessRequestModalProps {
 
 export const ProcessRequestModal: React.FC<ProcessRequestModalProps> = ({ isOpen, onClose, request, onSave }) => {
     const [response, setResponse] = useState('');
+    const [demandeur, setDemandeur] = useState<User | null>(null);
 
     useEffect(() => {
         if (!isOpen) {
             setResponse('');
+            setDemandeur(null);
+        } else if (request) {
+            const fetchDemandeur = async () => {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', request.demandeur_id)
+                    .single();
+                if(error) console.error("Error fetching requester details", error);
+                else setDemandeur(data as User);
+            };
+            fetchDemandeur();
         }
-    }, [isOpen]);
+    }, [isOpen, request]);
 
     if (!request) return null;
 
@@ -30,15 +43,13 @@ export const ProcessRequestModal: React.FC<ProcessRequestModalProps> = ({ isOpen
         onClose();
     };
 
-    const demandeur = users[request.demandeur_id];
-
     return (
-        <Modal id="process-request-modal" title={`Traitement de la Requête ${request.id}`} isOpen={isOpen} onClose={onClose} size="modal-lg">
+        <Modal id="process-request-modal" title={`Traitement de la Requête ${request.id.substring(0,8)}...`} isOpen={isOpen} onClose={onClose} size="modal-lg">
             <form onSubmit={handleSubmit}>
                 <div className="bg-gray-50 p-4 rounded-lg mb-4 border">
                     <h4 className="font-bold text-lg text-gray-800 mb-2">{request.sujet}</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 text-sm mb-3">
-                        <p><strong>Demandeur:</strong> {demandeur?.name || 'N/A'}</p>
+                        <p><strong>Demandeur:</strong> {demandeur?.name || 'Chargement...'}</p>
                         <p><strong>Date:</strong> {formatDate(request.created_at)}</p>
                         <p><strong>Type:</strong> <span className="badge badge-purple">{request.type}</span></p>
                         <p><strong>Statut Actuel:</strong> <span className={`badge ${getBadgeClass(request.status)}`}>{request.status}</span></p>

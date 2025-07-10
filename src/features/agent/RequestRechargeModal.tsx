@@ -1,28 +1,51 @@
-
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../../components/common/Modal';
 import { Agent, AgentRechargeRequest } from '../../types';
 import { formatAmount, formatDate } from '../../utils/formatters';
 import { getBadgeClass } from '../../utils/uiHelpers';
+import { supabase } from '../../supabaseClient';
 
 interface RequestRechargeModalProps {
     isOpen: boolean;
     onClose: () => void;
     user: Agent;
     onSave: (data: { amount: number, reason: string | null }) => void;
-    rechargeHistory: AgentRechargeRequest[];
+    rechargeHistory: AgentRechargeRequest[]; // This prop is kept for structure but we will fetch fresh data
 }
 
-export const RequestRechargeModal: React.FC<RequestRechargeModalProps> = ({ isOpen, onClose, user, onSave, rechargeHistory }) => {
+export const RequestRechargeModal: React.FC<RequestRechargeModalProps> = ({ isOpen, onClose, user, onSave }) => {
     const [amount, setAmount] = useState<number | ''>('');
     const [reason, setReason] = useState('');
+    const [history, setHistory] = useState<AgentRechargeRequest[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(true);
 
     useEffect(() => {
+        const fetchHistory = async () => {
+            if (isOpen) {
+                setLoadingHistory(true);
+                const { data, error } = await supabase
+                    .from('agent_recharge_requests')
+                    .select('*')
+                    .eq('agent_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                if (error) {
+                    console.error("Error fetching recharge history:", error);
+                } else {
+                    setHistory(data || []);
+                }
+                setLoadingHistory(false);
+            }
+        };
+
+        fetchHistory();
+
         if (!isOpen) {
             setAmount('');
             setReason('');
         }
-    }, [isOpen]);
+    }, [isOpen, user.id]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -74,8 +97,10 @@ export const RequestRechargeModal: React.FC<RequestRechargeModalProps> = ({ isOp
                                 </tr>
                             </thead>
                             <tbody>
-                                {rechargeHistory.length > 0 ? (
-                                    rechargeHistory.slice(0, 5).map(req => (
+                                {loadingHistory ? (
+                                    <tr><td colSpan={3} className="text-center text-gray-500 py-4">Chargement...</td></tr>
+                                ) : history.length > 0 ? (
+                                    history.map(req => (
                                         <tr key={req.id}>
                                             <td>{formatDate(req.created_at).split(' ')[0]}</td>
                                             <td>{formatAmount(req.amount)}</td>

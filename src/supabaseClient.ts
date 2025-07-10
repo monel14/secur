@@ -5,10 +5,10 @@ import { Database } from './types/database.types';
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('VOTRE_URL_SUPABASE') || supabaseAnonKey.includes('VOTRE_CLE_ANON_SUPABASE')) {
     const errorMsg = "Erreur: Clés Supabase non configurées.\n\n" +
-                     "Veuillez vérifier la configuration dans index.html.\n\n" +
-                     "Les variables SUPABASE_URL et SUPABASE_ANON_KEY doivent être définies.";
+                     "Veuillez ouvrir le fichier `index.html` et remplacer les valeurs de `SUPABASE_URL` et `SUPABASE_ANON_KEY` par celles de votre projet Supabase.\n\n" +
+                     "Vous trouverez ces clés dans les paramètres de votre projet sur supabase.com > Project Settings > API.";
     
     // Display a more user-friendly message on the page itself
     const root = document.getElementById('root');

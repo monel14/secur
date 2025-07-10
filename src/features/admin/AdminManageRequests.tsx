@@ -30,7 +30,7 @@ export const AdminManageRequests: React.FC<PageComponentProps> = (props) => {
         };
 
         fetchOpenRequests();
-    }, []);
+    }, [props.refreshKey]);
 
     if (loading) {
         return <div>Chargement des requêtes...</div>;

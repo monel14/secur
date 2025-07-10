@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { PageComponentProps, ErrorLog } from '../../types';
 import { Card } from '../../components/common/Card';
@@ -22,6 +21,8 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: string, 
 );
 
 export const DevErrorLogs: React.FC<PageComponentProps> = () => {
+    // NOTE: This component uses mock data. In a real application, these logs would be ingested
+    // from a logging service (like Sentry, Logtail) or a dedicated database table.
     const [logs, setLogs] = useState<LogWithStatus[]>(initialLogs.map(log => ({ ...log, resolved: false })));
     const [expandedLogTimestamp, setExpandedLogTimestamp] = useState<string | null>(null);
     const [dateFilter, setDateFilter] = useState('');

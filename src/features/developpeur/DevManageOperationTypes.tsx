@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { PageComponentProps, OperationType, CommissionConfig, FormField } from '../../types';
 import { Card } from '../../components/common/Card';
@@ -134,7 +136,7 @@ export const DevManageOperationTypes: React.FC<PageComponentProps> = ({ handleAc
         return operationTypes.filter(opType => {
             const matchesSearch = searchTerm === '' || 
                                   opType.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                  opType.description.toLowerCase().includes(searchTerm.toLowerCase());
+                                  (opType.description || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesStatus = statusFilter === 'all' || opType.status === statusFilter;
             return matchesSearch && matchesStatus;
         });

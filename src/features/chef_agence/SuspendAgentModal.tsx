@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../../components/common/Modal';
 import { Agent } from '../../types';
@@ -6,7 +7,7 @@ interface SuspendAgentModalProps {
     isOpen: boolean;
     onClose: () => void;
     agent: Agent | null;
-    onConfirm: (agentId: string, reason: string | null) => void;
+    onConfirm: (agent: Agent, reason: string | null) => void;
 }
 
 export const SuspendAgentModal: React.FC<SuspendAgentModalProps> = ({ isOpen, onClose, agent, onConfirm }) => {
@@ -23,7 +24,7 @@ export const SuspendAgentModal: React.FC<SuspendAgentModalProps> = ({ isOpen, on
     
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onConfirm(agent.id, isSuspending ? reason : null);
+        onConfirm(agent, isSuspending ? reason : null);
         onClose();
     };
 

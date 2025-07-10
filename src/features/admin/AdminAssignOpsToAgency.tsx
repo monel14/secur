@@ -1,46 +1,110 @@
 
-
 import React, { useState, useMemo, useEffect } from 'react';
-import { PageComponentProps, OperationType } from '../../types';
+import { PageComponentProps, OperationType, Agency } from '../../types';
 import { Card } from '../../components/common/Card';
-import { mockAgencies, mockOperationTypes, agencyOperationAccess as initialAccess } from '../../data';
+import { supabase } from '../../supabaseClient';
 
-interface AdminAssignOpsPageProps extends PageComponentProps {
-    agencyAccess: { [key: string]: string[] };
-}
-
-export const AdminAssignOpsToAgency: React.FC<AdminAssignOpsPageProps> = () => {
-    const [agencies, setAgencies] = useState(mockAgencies);
-    const [opTypes, setOpTypes] = useState(mockOperationTypes);
-    const [access, setAccess] = useState(initialAccess);
-    const [selectedAgencyId, setSelectedAgencyId] = useState<string>(agencies[0]?.id || '');
+export const AdminAssignOpsToAgency: React.FC<PageComponentProps> = ({ refreshKey }) => {
+    const [agencies, setAgencies] = useState<Agency[]>([]);
+    const [opTypes, setOpTypes] = useState<OperationType[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [accessMap, setAccessMap] = useState<Record<string, string[]>>({});
+    const [selectedAgencyId, setSelectedAgencyId] = useState<string>('');
     const [agencySearch, setAgencySearch] = useState('');
     const [opTypeSearch, setOpTypeSearch] = useState('');
     const [changes, setChanges] = useState<string[]>([]);
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        setChanges(access[selectedAgencyId] || []);
-    }, [selectedAgencyId, access]);
+        const fetchData = async () => {
+            setLoading(true);
+            const [agenciesRes, opTypesRes, accessRes] = await Promise.all([
+                supabase.from('agencies').select('*'),
+                supabase.from('operation_types').select('*'),
+                supabase.from('agency_operation_access').select('agency_id, op_type_id')
+            ]);
+
+            if (agenciesRes.error || opTypesRes.error || accessRes.error) {
+                console.error("Error fetching data:", { a: agenciesRes.error, o: opTypesRes.error, p: accessRes.error });
+                setLoading(false);
+                return;
+            }
+
+            const agenciesData = agenciesRes.data || [];
+            const opTypesData = (opTypesRes.data || []).map((op: any) => ({
+                ...op,
+                fields: op.fields || [],
+                commission_config: op.commission_config || { type: 'none' },
+            })) as OperationType[];
+            
+            setAgencies(agenciesData);
+            setOpTypes(opTypesData);
+
+            const initialAccessMap = agenciesData.reduce((acc, agency) => {
+                acc[agency.id] = [];
+                return acc;
+            }, {} as Record<string, string[]>);
+
+            (accessRes.data || []).forEach(access => {
+                if (initialAccessMap[access.agency_id]) {
+                    initialAccessMap[access.agency_id].push(access.op_type_id);
+                }
+            });
+            setAccessMap(initialAccessMap);
+
+            if (agenciesData.length > 0 && !selectedAgencyId) {
+                setSelectedAgencyId(agenciesData[0].id);
+            }
+            
+            setLoading(false);
+        };
+        fetchData();
+    }, [refreshKey]);
+
+
+    useEffect(() => {
+        setChanges(accessMap[selectedAgencyId] || []);
+    }, [selectedAgencyId, accessMap]);
 
     const handleCheckChange = (opTypeId: string, checked: boolean) => {
         setChanges(prev => {
+            const newChanges = new Set(prev);
             if (checked) {
-                return [...prev, opTypeId];
+                newChanges.add(opTypeId);
             } else {
-                return prev.filter(id => id !== opTypeId);
+                newChanges.delete(opTypeId);
             }
+            return Array.from(newChanges);
         });
     };
     
-    const handleSave = () => {
-        setAccess(prev => ({
-            ...prev,
-            [selectedAgencyId]: changes,
-        }));
-        alert(`Permissions pour l'agence ${selectedAgencyName} sauvegardées !`);
+    const handleSave = async () => {
+        if (!selectedAgencyId) return;
+        setIsSaving(true);
+        const { error } = await supabase.rpc('update_agency_op_access', {
+            p_agency_id: selectedAgencyId,
+            p_op_type_ids: changes
+        });
+
+        if (error) {
+            alert(`Erreur lors de la sauvegarde: ${error.message}`);
+        } else {
+            alert(`Permissions pour l'agence ${selectedAgencyName} sauvegardées !`);
+            // Refresh local state to match DB
+            setAccessMap(prev => ({
+                ...prev,
+                [selectedAgencyId]: changes,
+            }));
+        }
+        setIsSaving(false);
     };
 
-    const isSaveDisabled = JSON.stringify(changes.sort()) === JSON.stringify((access[selectedAgencyId] || []).sort());
+    const isSaveDisabled = useMemo(() => {
+        if (isSaving) return true;
+        const original = accessMap[selectedAgencyId]?.sort() || [];
+        const current = changes.sort();
+        return JSON.stringify(original) === JSON.stringify(current);
+    }, [changes, accessMap, selectedAgencyId, isSaving]);
 
     const filteredAgencies = useMemo(() =>
         agencies.filter(a => a.name.toLowerCase().includes(agencySearch.toLowerCase())),
@@ -53,6 +117,8 @@ export const AdminAssignOpsToAgency: React.FC<AdminAssignOpsPageProps> = () => {
     );
 
     const selectedAgencyName = useMemo(() => agencies.find(a => a.id === selectedAgencyId)?.name, [agencies, selectedAgencyId]);
+
+    if(loading) return <Card title="Attribution des Services aux Agences" icon="fa-store-alt-slash">Chargement...</Card>
 
     return (
         <Card title="Attribution des Services aux Agences" icon="fa-store-alt-slash">
@@ -80,7 +146,7 @@ export const AdminAssignOpsToAgency: React.FC<AdminAssignOpsPageProps> = () => {
                                     >
                                         <p className="font-semibold">{agency.name}</p>
                                         <p className={`text-sm ${selectedAgencyId === agency.id ? 'text-blue-200' : 'text-gray-500'}`}>
-                                            {(access[agency.id] || []).length} service(s) activé(s)
+                                            {(accessMap[agency.id] || []).length} service(s) activé(s)
                                         </p>
                                     </button>
                                 </li>
@@ -132,7 +198,8 @@ export const AdminAssignOpsToAgency: React.FC<AdminAssignOpsPageProps> = () => {
                                     onClick={handleSave}
                                     disabled={isSaveDisabled}
                                 >
-                                    <i className="fas fa-save mr-2"></i> Enregistrer les modifications
+                                    <i className={`fas ${isSaving ? 'fa-spinner animate-spin' : 'fa-save'} mr-2`}></i>
+                                    {isSaving ? 'Sauvegarde...' : 'Enregistrer les modifications'}
                                 </button>
                             </div>
                         </>

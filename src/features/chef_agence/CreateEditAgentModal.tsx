@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../../components/common/Modal';
 import { Agent } from '../../types';
@@ -7,12 +8,13 @@ interface CreateEditAgentModalProps {
     isOpen: boolean;
     onClose: () => void;
     agentToEdit: Agent | null;
-    onSave: (agent: Agent) => void;
+    onSave: (agent: Partial<Agent>, password?: string) => void;
     agencyId: string;
 }
 
 export const CreateEditAgentModal: React.FC<CreateEditAgentModalProps> = ({ isOpen, onClose, agentToEdit, onSave, agencyId }) => {
     const [agentData, setAgentData] = useState<Partial<Agent>>({});
+    const [password, setPassword] = useState('');
 
     useEffect(() => {
         if (isOpen) {
@@ -25,10 +27,12 @@ export const CreateEditAgentModal: React.FC<CreateEditAgentModalProps> = ({ isOp
                     email: '',
                     solde: 0,
                     status: 'active',
+                    agency_id: agencyId,
                 });
             }
+            setPassword('');
         }
-    }, [isOpen, agentToEdit]);
+    }, [isOpen, agentToEdit, agencyId]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type } = e.target;
@@ -40,24 +44,9 @@ export const CreateEditAgentModal: React.FC<CreateEditAgentModalProps> = ({ isOp
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
-        const newAgent: Agent = {
-            id: agentToEdit?.id || `agent_${Date.now()}`,
-            name: agentData.name || '',
-            email: agentData.email || '',
-            role: 'agent',
-            agency_id: agencyId,
-            solde: agentData.solde || 0,
-            status: agentData.status || 'active',
-            avatar_seed: (agentData.name || 'N').charAt(0).toUpperCase(),
-            creation_date: agentToEdit?.creation_date || new Date().toISOString().split('T')[0],
-            transactions_this_month: agentToEdit?.transactions_this_month || 0,
-            commissions_mois_estimees: agentToEdit?.commissions_mois_estimees || 0,
-            commissions_dues: agentToEdit?.commissions_dues || 0,
-            suspension_reason: agentToEdit?.suspension_reason || null
-        };
-
-        onSave(newAgent);
+        const finalPassword = agentToEdit ? (password || undefined) : password;
+        onSave(agentData, finalPassword);
+        onClose();
     };
 
     const title = agentToEdit ? `Modifier l'Agent: ${agentToEdit.name}` : "Créer un Nouveau Compte Agent";
@@ -71,7 +60,7 @@ export const CreateEditAgentModal: React.FC<CreateEditAgentModalProps> = ({ isOp
                 </div>
                 <div className="mb-4">
                     <label htmlFor="email" className="form-label">Adresse Email</label>
-                    <input type="email" id="email" name="email" className="form-input" value={agentData.email || ''} onChange={handleChange} required />
+                    <input type="email" id="email" name="email" className="form-input" value={agentData.email || ''} onChange={handleChange} required disabled={!!agentToEdit} />
                 </div>
                  <div className="mb-4">
                     <label htmlFor="solde" className="form-label">Solde initial</label>
@@ -79,7 +68,7 @@ export const CreateEditAgentModal: React.FC<CreateEditAgentModalProps> = ({ isOp
                 </div>
                 <div className="mb-6">
                     <label htmlFor="password" className="form-label">{agentToEdit ? "Nouveau Mot de passe (optionnel)" : "Mot de passe"}</label>
-                    <input type="password" id="password" className="form-input" required={!agentToEdit} />
+                    <input type="password" id="password" className="form-input" value={password} onChange={(e) => setPassword(e.target.value)} required={!agentToEdit} />
                 </div>
                 <div className="flex justify-end space-x-3 mt-4">
                     <button type="button" className="btn btn-secondary" onClick={onClose}>Annuler</button>

@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../../components/common/Modal';
-import { users } from '../../data';
 import { SousAdmin } from '../../types';
+import { supabase } from '../../supabaseClient';
 
 interface AssignTaskModalProps {
     isOpen: boolean;
@@ -13,13 +13,25 @@ interface AssignTaskModalProps {
 
 export const AssignTaskModal: React.FC<AssignTaskModalProps> = ({ isOpen, onClose, onAssign, taskData }) => {
     const [targetUserId, setTargetUserId] = useState('');
-    const subAdmins = Object.values(users).filter((u): u is SousAdmin => u.role === 'sous_admin');
+    const [subAdmins, setSubAdmins] = useState<SousAdmin[]>([]);
 
     useEffect(() => {
-        if (isOpen && subAdmins.length > 0) {
-            setTargetUserId(subAdmins[0].id);
-        }
-    }, [isOpen, subAdmins]);
+        const fetchSubAdmins = async () => {
+            if (isOpen) {
+                const { data, error } = await supabase.from('profiles').select('*').eq('role', 'sous_admin');
+                if (error) {
+                    console.error('Error fetching sub-admins:', error);
+                } else {
+                    const admins = (data as unknown as SousAdmin[]) || [];
+                    setSubAdmins(admins);
+                    if (admins.length > 0) {
+                        setTargetUserId(admins[0].id);
+                    }
+                }
+            }
+        };
+        fetchSubAdmins();
+    }, [isOpen]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,7 +43,7 @@ export const AssignTaskModal: React.FC<AssignTaskModalProps> = ({ isOpen, onClos
     if (!taskData) return null;
 
     return (
-        <Modal id="assign-task-modal" title={`Assigner Tâche ${taskData.id}`} isOpen={isOpen} onClose={onClose}>
+        <Modal id="assign-task-modal" title={`Assigner Tâche ${taskData.id.substring(0,8)}...`} isOpen={isOpen} onClose={onClose}>
             <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                     <label className="form-label" htmlFor="subAdminSelect">Choisir un Sous-Administrateur</label>
